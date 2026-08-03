@@ -1,0 +1,11 @@
+[package]
+name = "ingredient-tracking"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+rusqlite = {version = "0.40.1", features = ["bundled"]}
+clap = "4.6.5"
+dialoguer = "0.12.0"
+directories = "6.0.0"
+pretty-sqlite = "0.6.0"
