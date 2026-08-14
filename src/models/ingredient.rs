@@ -24,14 +24,35 @@ pub struct Ingredient {
 }
 
 impl Ingredient {
-    pub fn create_ingredient(name: String, category: Category, unit: Unit) -> Ingredient {
-        let ingredient = Ingredient {
-            name,
-            category,
-            unit,
-        };
+    // pub fn create_ingredient(name: String, category: Category, unit: Unit) -> Ingredient {
+    //     let ingredient = Ingredient {
+    //         name,
+    //         category,
+    //         unit,
+    //     };
 
-        ingredient
+    //     ingredient
+    // }
+
+    pub fn convert_to_category(ingredient: String) -> Category {
+        match ingredient.as_str() {
+            "Vegetable" => Category::Vegetable,
+            "Fruit" => Category::Fruit,
+            "Pasta" => Category::Pasta,
+            "Rice" => Category::Rice,
+            "Sauce" => Category::Sauce,
+            "Misc" => Category::Misc,
+            _ => Category::Misc,
+        }
+    }
+
+    pub fn convert_to_unit(unit: String) -> Unit {
+        match unit.as_str() {
+            "Grams" => Unit::Grams,
+            "Ml" => Unit::Ml,
+            "Number" => Unit::Number,
+            _ => panic!("Unit is not correct"),
+        }
     }
 
     pub fn return_category_string(ingredient: &Ingredient) -> String {

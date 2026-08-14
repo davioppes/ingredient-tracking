@@ -1,5 +1,5 @@
 pub mod ingredients;
-mod pantry;
+pub mod pantry;
 
 use rusqlite::{Connection, Result};
 
