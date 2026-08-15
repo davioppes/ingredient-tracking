@@ -17,7 +17,7 @@ pub enum Unit {
 
 #[derive(Debug, Clone)]
 pub struct Ingredient {
-    // pub id: i64,
+    pub id: Option<i64>,
     pub name: String,
     pub category: Category,
     pub unit: Unit,
