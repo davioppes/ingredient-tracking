@@ -17,7 +17,7 @@ pub fn add_ingredient(conn: &Connection, ingredient: &Ingredient) -> Result<usiz
     Ok(number_row_changed)
 }
 
-pub fn update_ingredient(conn: &Connection, updated_ingredient: Ingredient) -> Result<usize> {
+pub fn update_ingredient(conn: &Connection, updated_ingredient: &Ingredient) -> Result<usize> {
     conn.execute(
         "UPDATE ingredients
             SET name = ?1,
@@ -61,14 +61,17 @@ pub fn get_ingredient_id(conn: &Connection, ingredient_name: String) -> Result<i
     )
 }
 
-pub fn remove_ingredient_from_ingredient(conn: &Connection, ingredient: &Ingredient) -> Result<()> {
+pub fn remove_ingredient_from_ingredient(
+    conn: &Connection,
+    ingredient: &Ingredient,
+) -> Result<usize> {
     // Should always remove as user will select one of the available ingredients
     let number_removed = conn.execute(
         "DELETE FROM ingredients WHERE name = ?1",
         [ingredient.name.clone()],
     )?;
 
-    Ok(())
+    Ok(number_removed)
 }
 // Used for testing
 // In actual program, user will select an Ingredient struct item to remove from a list of all ingredient (or searched ingredients)

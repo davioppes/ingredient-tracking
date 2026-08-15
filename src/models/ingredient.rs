@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum Category {
     Vegetable,
@@ -23,17 +25,20 @@ pub struct Ingredient {
     pub unit: Unit,
 }
 
+impl fmt::Display for Ingredient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "ID: {} | NAME: {} | CATEGORY: {} | UNIT: {}",
+            self.id.unwrap().to_string(),
+            self.name,
+            Ingredient::return_category_string(self),
+            Ingredient::return_unit_string(self)
+        )
+    }
+}
+
 impl Ingredient {
-    // pub fn create_ingredient(name: String, category: Category, unit: Unit) -> Ingredient {
-    //     let ingredient = Ingredient {
-    //         name,
-    //         category,
-    //         unit,
-    //     };
-
-    //     ingredient
-    // }
-
     pub fn convert_to_category(ingredient: String) -> Category {
         match ingredient.as_str() {
             "Vegetable" => Category::Vegetable,

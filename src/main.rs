@@ -75,16 +75,46 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conn = db::create_connection_memory()?;
 
     let mut exit: bool = false;
+    let mut state: &str = "menu";
 
     while !exit {
-        let choice = menu::main_menu()?;
+        match state {
+            "menu" => {
+                state = "menu";
+                let choice = menu::main_menu()?;
 
-        match menu::STARTING_CHOICES[choice] {
-            "Ingredients" => menu::ingredients_menu(&conn)?,
-            "Pantry" => {}
-            "Recipes" => {}
-            "Exit" => exit = true,
-            _ => unreachable!("Select failed"),
+                match menu::STARTING_CHOICES[choice] {
+                    "Ingredients" => state = "ingredient",
+                    "Pantry" => state = "pantry",
+                    "Recipes" => state = "recipes",
+                    "Exit" => exit = true,
+                    _ => unreachable!("Select failed"),
+                }
+            }
+            "ingredient" => {
+                state = "ingredient";
+                let choice = menu::ingredients_menu()?;
+
+                match menu::INGREDIENT_CHOICES[choice] {
+                    "Add Ingredient" => {
+                        menu::add_ingredient(&conn)?;
+                    }
+                    "Remove Ingredient" => {
+                        menu::remove_ingredient(&conn)?;
+                    }
+                    "Update Ingredient" => {
+                        menu::update_ingredient(&conn)?;
+                    }
+                    "List All Ingredients" => {
+                        menu::list_all_ingredients(&conn)?;
+                    }
+                    "Go Back" => state = "menu",
+                    _ => unreachable!(),
+                }
+            }
+            "pantry" => {}
+            "recipe" => {}
+            _ => unreachable!("Menu match failed!"),
         }
     }
 

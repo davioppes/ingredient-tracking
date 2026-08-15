@@ -38,47 +38,106 @@ pub fn main_menu() -> Result<usize, Box<dyn Error>> {
     Ok(select)
 }
 
-pub fn ingredients_menu(conn: &Connection) -> Result<(), Box<dyn Error>> {
+// INGREDIENT MENU
+pub fn ingredients_menu() -> Result<usize, Box<dyn Error>> {
     let ingredient_select = dialoguer::Select::new()
         .with_prompt("What would you like to do?")
         .items(&INGREDIENT_CHOICES)
         .interact()?;
+    Ok(ingredient_select)
+}
 
-    match INGREDIENT_CHOICES[ingredient_select] {
-        "Add Ingredient" => {
-            let new_ingredient = ask_for_ingredient()?;
-            // Check for any errors and add ingredient
-            match ingredients::add_ingredient(conn, &new_ingredient) {
-                Ok(number_row) => {
-                    if number_row == 0 {
-                        println!("Ingredient was not added.")
-                    }
-                }
-                Err(SQLError::SqliteFailure(err, _)) => match err.extended_code {
-                    ffi::SQLITE_CONSTRAINT_UNIQUE => {
-                        println!("Ingredient name already exists!")
-                    }
-                    _ => println!("Another constraint error has occured!"),
-                },
-                Err(error) => {
-                    println!("Error has occured. {:?}", error)
-                }
-            };
-        }
-        "Remove Ingredient" => {}
-        "Update Ingredient" => {}
-        "List All Ingredients" => {
-            let all_ingredients = ingredients::list_all_ingredients(conn)?;
-            for ing in all_ingredients {
-                println!("{:?}", ing);
+pub fn add_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let new_ingredient = ask_for_ingredient()?;
+    // Check for any errors and add ingredient
+    match ingredients::add_ingredient(conn, &new_ingredient) {
+        Ok(number_row) => {
+            if number_row == 0 {
+                println!("Ingredient was not added.")
             }
         }
-        "Go Back" => {}
-        _ => unreachable!(),
-    }
+        Err(SQLError::SqliteFailure(err, _)) => match err.extended_code {
+            ffi::SQLITE_CONSTRAINT_UNIQUE => {
+                println!("Ingredient name already exists!")
+            }
+            _ => println!("Another constraint error has occured!"),
+        },
+        Err(error) => {
+            println!("Error has occured. {:?}", error)
+        }
+    };
     Ok(())
 }
 
+pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let list_ingredients = ingredients::list_all_ingredients(conn)?;
+
+    if list_ingredients.is_empty() {
+        println!("There are no ingredients!");
+    } else {
+        let choice: usize = dialoguer::Select::new()
+            .with_prompt("Please select an ingredient to remove!")
+            .items(&list_ingredients)
+            .interact()?;
+
+        let deleted =
+            ingredients::remove_ingredient_from_ingredient(conn, &list_ingredients[choice])?;
+        if deleted > 0 {
+            println!("Ingredient deleted!");
+        } else {
+            println!("Ingredient not deleted!")
+        }
+    }
+
+    Ok(())
+}
+
+pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let list_ingredients = ingredients::list_all_ingredients(conn)?;
+
+    if list_ingredients.is_empty() {
+        println!("There are no ingredients!");
+    } else {
+        let choice: usize = dialoguer::Select::new()
+            .with_prompt("Please select an ingredient to update!")
+            .items(&list_ingredients)
+            .interact()?;
+
+        println!("Ingredient to update: {:?}", list_ingredients[choice]);
+        let mut new_ingredient = ask_for_ingredient()?;
+
+        new_ingredient.id = list_ingredients[choice].id;
+
+        let confirmation = dialoguer::Confirm::new()
+            .with_prompt("Would you like to update?")
+            .wait_for_newline(true)
+            .default(false)
+            .interact()?;
+
+        if confirmation {
+            let updated = ingredients::update_ingredient(conn, &new_ingredient)?;
+            if updated > 0 {
+                println!("Ingredient updated!");
+            } else {
+                println!("Ingredient not updated!")
+            }
+        } else {
+            println!("Ingredient update aborted!")
+        }
+    }
+
+    Ok(())
+}
+
+pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let all_ingredients = ingredients::list_all_ingredients(conn)?;
+    for ing in all_ingredients {
+        println!("{:?}", ing);
+    }
+
+    Ok(())
+}
+// Helper function to create a new ingredient
 fn ask_for_ingredient() -> Result<Ingredient, Box<dyn Error>> {
     let name = dialoguer::Input::new()
         .with_prompt("Name of ingredient?")
