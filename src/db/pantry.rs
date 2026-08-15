@@ -25,6 +25,21 @@ pub fn add_pantry_item(conn: &Connection, pantry_item: &PantryItem) -> Result<()
     Ok(())
 }
 
+pub fn update_pantry_item(conn: &Connection, updated_pantry_item: &PantryItem) -> Result<usize> {
+    conn.execute(
+        "UPDATE pantry
+            SET amount = ?1,
+            expiry_date = ?2,
+            WHERE id = ?3
+    ",
+        [
+            &updated_pantry_item.amount.to_string(),
+            &updated_pantry_item.expiry_date.to_string(),
+            &updated_pantry_item.id.unwrap().to_string(),
+        ],
+    )
+}
+
 pub fn list_pantry_items_all(conn: &Connection) -> Result<Vec<PantryItem>> {
     //Prepares the SQL statement
     let mut stmt = conn.prepare(
@@ -40,7 +55,7 @@ pub fn list_pantry_items_all(conn: &Connection) -> Result<Vec<PantryItem>> {
                 id: Some(row.get::<_, i64>(0)?),
                 ingredient_id: row.get::<_, i64>(1)?,
                 name: row.get::<_, String>(2)?,
-                amount: row.get::<_, i64>(3)?,
+                amount: row.get::<_, f64>(3)?,
                 expiry_date: row.get(4)?,
             })
         })?
@@ -68,7 +83,7 @@ pub fn list_pantry_items_specific(
                 id: Some(row.get::<_, i64>(0)?),
                 ingredient_id: ingredient_id,
                 name: row.get::<_, String>(1)?,
-                amount: row.get::<_, i64>(2)?,
+                amount: row.get::<_, f64>(2)?,
                 expiry_date: row.get(3)?,
             })
         })?

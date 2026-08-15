@@ -1,3 +1,4 @@
+use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
 use dialoguer;
 use rusqlite::Connection;
@@ -75,7 +76,7 @@ pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
     } else {
-        let choice: usize = dialoguer::Select::new()
+        let choice: usize = dialoguer::FuzzySelect::new()
             .with_prompt("Please select an ingredient to remove!")
             .items(&list_ingredients)
             .interact()?;
@@ -98,12 +99,12 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
     } else {
-        let choice: usize = dialoguer::Select::new()
+        let choice: usize = dialoguer::FuzzySelect::new()
             .with_prompt("Please select an ingredient to update!")
             .items(&list_ingredients)
             .interact()?;
 
-        println!("Ingredient to update: {:?}", list_ingredients[choice]);
+        println!("Ingredient to update: {}", list_ingredients[choice]);
         let mut new_ingredient = ask_for_ingredient()?;
 
         new_ingredient.id = list_ingredients[choice].id;
@@ -129,10 +130,44 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+// PANTRY MENU
+pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let list_all_ingredients = ingredients::list_all_ingredients(conn)?;
+
+    if list_all_ingredients.is_empty() {
+        println!("No ingredients exist!");
+    } else {
+        let choice: usize = dialoguer::FuzzySelect::new()
+            .with_prompt("Select an ingredient to add to the pantry!")
+            .items(&list_all_ingredients)
+            .interact()?;
+
+        // name, ingredient_id
+        let ingredient_choice: &Ingredient = &list_all_ingredients[choice];
+
+        let amount: f64 = dialoguer::Input::new()
+            .with_prompt(format!(
+                "Enter amount of {} in {}",
+                ingredient_choice.name,
+                Ingredient::return_unit_string(&ingredient_choice)
+            ))
+            .interact_text()?;
+
+        let expiry_day: String = dialoguer::Input::new()
+            .with_prompt("Enter day of expiration")
+            .validate_with(|input: &String| -> Result<(), String> {})
+            .interact_text()?;
+
+        // let new_pantry_item = PantryItem { }
+    }
+
+    Ok(())
+}
+
 pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let all_ingredients = ingredients::list_all_ingredients(conn)?;
     for ing in all_ingredients {
-        println!("{:?}", ing);
+        println!("{}", ing);
     }
 
     Ok(())
