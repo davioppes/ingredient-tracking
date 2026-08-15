@@ -112,7 +112,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                     _ => unreachable!(),
                 }
             }
-            "pantry" => {}
+            "pantry" => {
+                state = "pantry";
+                let choice = menu::pantry_menu()?;
+
+                match menu::PANTRY_CHOICES[choice] {
+                    "Add Pantry Item" => {
+                        menu::add_pantry_item(&conn)?;
+                    }
+                    "Remove Pantry Item" => {}
+                    "List Pantry" => {
+                        menu::list_all_pantry_items(&conn)?;
+                    }
+                    "Go Back" => state = "menu",
+                    _ => unreachable!(),
+                }
+            }
             "recipe" => {}
             _ => unreachable!("Menu match failed!"),
         }

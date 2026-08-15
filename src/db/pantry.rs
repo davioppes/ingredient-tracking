@@ -43,7 +43,7 @@ pub fn update_pantry_item(conn: &Connection, updated_pantry_item: &PantryItem) -
 pub fn list_pantry_items_all(conn: &Connection) -> Result<Vec<PantryItem>> {
     //Prepares the SQL statement
     let mut stmt = conn.prepare(
-        "SELECT pantry.id, pantry.ingredient_id, ingredients.name, pantry.amount, pantry.expiry_date 
+        "SELECT pantry.id, pantry.ingredient_id, ingredients.name, pantry.quantity, pantry.expiry_date 
             FROM pantry 
             INNER JOIN ingredients ON ingredients.id = pantry.ingredient_id",
     )?;
@@ -70,7 +70,7 @@ pub fn list_pantry_items_specific(
 ) -> Result<Vec<PantryItem>> {
     //Prepares the SQL statement
     let mut stmt = conn.prepare(
-        "SELECT pantry.id, ingredients.name, pantry.amount, pantry.expiry_date 
+        "SELECT pantry.id, ingredients.name, pantry.quantity, pantry.expiry_date 
             FROM pantry 
             INNER JOIN ingredients ON ingredients.id = pantry.ingredient_id
             WHERE pantry.ingredient_id = (?1)",

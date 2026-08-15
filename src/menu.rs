@@ -1,5 +1,7 @@
+use crate::db::pantry;
 use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
+use chrono::{self, Datelike, NaiveDate};
 use dialoguer;
 use rusqlite::Connection;
 use rusqlite::Error as SQLError;
@@ -131,6 +133,14 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 }
 
 // PANTRY MENU
+pub fn pantry_menu() -> Result<usize, Box<dyn Error>> {
+    let pantry_select = dialoguer::Select::new()
+        .with_prompt("What would you like to do?")
+        .items(&PANTRY_CHOICES)
+        .interact()?;
+    Ok(pantry_select)
+}
+
 pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let list_all_ingredients = ingredients::list_all_ingredients(conn)?;
 
@@ -153,12 +163,41 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
             ))
             .interact_text()?;
 
-        let expiry_day: String = dialoguer::Input::new()
-            .with_prompt("Enter day of expiration")
-            .validate_with(|input: &String| -> Result<(), String> {})
+        let current_date = chrono::Local::now().date_naive();
+
+        let expiry_date_string: String = dialoguer::Input::new()
+            .with_prompt("Enter day of expiration as YYYY-MM-DD:")
+            .validate_with(|input: &String| -> Result<(), String> {
+                match NaiveDate::parse_from_str(input, "%Y-%m-%d") {
+                    Ok(date) if date >= current_date => Ok(()),
+                    Ok(_) => Err("Date cannot be in the past! Enter new date!".to_string()),
+                    Err(_) => Err("Enter in the format YYYY-MM-DD".to_string()),
+                }
+            })
             .interact_text()?;
 
+        let expiry_date = NaiveDate::parse_from_str(&expiry_date_string, "%Y-%m-%d").unwrap();
+
+        let new_pantry_item: PantryItem = PantryItem {
+            id: None,
+            ingredient_id: ingredient_choice.id.unwrap(),
+            name: ingredient_choice.name.clone(),
+            amount: amount,
+            expiry_date: expiry_date.to_string(),
+        };
+
+        pantry::add_pantry_item(conn, &new_pantry_item)?;
+
         // let new_pantry_item = PantryItem { }
+    }
+
+    Ok(())
+}
+
+pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let items = pantry::list_pantry_items_all(conn)?;
+    for item in items {
+        println!("{}", item);
     }
 
     Ok(())
