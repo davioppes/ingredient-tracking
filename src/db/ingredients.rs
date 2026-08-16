@@ -1,10 +1,6 @@
-use core::num;
-use std::ptr::read;
-
 use crate::{
-    db::ingredients,
-    error::DBErrors::{self, SqliteError},
-    models::ingredient::{Category, Ingredient, Unit},
+    error::DBErrors::{self},
+    models::ingredient::Ingredient,
 };
 use rusqlite::{Connection, Result, ffi};
 

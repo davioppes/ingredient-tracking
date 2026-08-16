@@ -1,7 +1,5 @@
 use std::fmt;
 
-use rusqlite::Connection;
-
 #[derive(Debug, Clone)]
 pub struct PantryItem {
     pub id: Option<i64>,

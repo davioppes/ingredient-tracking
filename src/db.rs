@@ -3,7 +3,8 @@ pub mod pantry;
 
 use rusqlite::{Connection, Result};
 
-pub fn create_connection_path(path: String) -> Result<Connection> {
+pub fn create_connection_path() -> Result<Connection> {
+    let path = "./my_db.db3";
     let connection = Connection::open(path)?;
     connection.execute("PRAGMA foreign_keys = ON;", [])?;
     create_tables(&connection)?;

@@ -2,13 +2,12 @@ use crate::db::pantry;
 use crate::error::DBErrors;
 use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
-use chrono::{self, Datelike, NaiveDate};
+use chrono::{self, NaiveDate};
 use dialoguer;
 use dialoguer::theme::ColorfulTheme;
 use rusqlite::Connection;
-use rusqlite::Error as SQLError;
-use rusqlite::ffi;
 use std::error::Error;
+use std::io::Write;
 
 // STARTING MENU CHOICES
 pub const STARTING_CHOICES: [&str; 4] = ["Ingredients", "Pantry", "Recipes", "Exit"];
@@ -333,4 +332,9 @@ fn ask_for_ingredient() -> Result<Ingredient, Box<dyn Error>> {
     };
 
     Ok(new_ingredient)
+}
+
+pub fn clear_screen() {
+    print!("\x1B[2J\x1B[1;1H");
+    std::io::stdout().flush().unwrap();
 }

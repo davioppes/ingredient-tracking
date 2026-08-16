@@ -1,7 +1,4 @@
-use core::num;
 use std::{error::Error, fmt};
-
-use crate::error::DBErrors::{IngredientInPantry, SqliteError};
 
 #[derive(Debug)]
 pub enum DBErrors {
