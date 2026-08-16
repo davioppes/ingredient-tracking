@@ -28,8 +28,8 @@ pub fn add_pantry_item(conn: &Connection, pantry_item: &PantryItem) -> Result<()
 pub fn update_pantry_item(conn: &Connection, updated_pantry_item: &PantryItem) -> Result<usize> {
     conn.execute(
         "UPDATE pantry
-            SET amount = ?1,
-            expiry_date = ?2,
+            SET quantity = ?1,
+            expiry_date = ?2
             WHERE id = ?3
     ",
         [

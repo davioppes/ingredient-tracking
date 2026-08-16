@@ -1,4 +1,5 @@
 use crate::db::pantry;
+use crate::error::DBErrors;
 use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
 use chrono::{self, Datelike, NaiveDate};
@@ -25,9 +26,10 @@ const CATEGORIES: [&str; 6] = ["Vegetable", "Fruit", "Pasta", "Rice", "Sauce", "
 const UNITS: [&str; 3] = ["Grams", "Ml", "Number"];
 
 // PANTRY MENU CHOICES
-pub const PANTRY_CHOICES: [&str; 4] = [
+pub const PANTRY_CHOICES: [&str; 5] = [
     "Add Pantry Item",
     "Remove Pantry Item",
+    "Update Pantry Item",
     "List Pantry",
     "Go Back",
 ];
@@ -54,21 +56,17 @@ pub fn add_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let new_ingredient = ask_for_ingredient()?;
     // Check for any errors and add ingredient
     match ingredients::add_ingredient(conn, &new_ingredient) {
-        Ok(number_row) => {
-            if number_row == 0 {
-                println!("Ingredient was not added.")
-            }
+        Ok(_) => {
+            println!("Ingredient was added.");
         }
-        Err(SQLError::SqliteFailure(err, _)) => match err.extended_code {
-            ffi::SQLITE_CONSTRAINT_UNIQUE => {
-                println!("Ingredient name already exists!")
-            }
-            _ => println!("Another constraint error has occured!"),
-        },
+        Err(DBErrors::DuplicateIngredient(name)) => {
+            println!("{name} already exists! Try another name.");
+        }
         Err(error) => {
-            println!("Error has occured. {:?}", error)
+            println!("Error has occured. {}", error);
         }
-    };
+    }
+
     Ok(())
 }
 
@@ -77,19 +75,20 @@ pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
-    } else {
-        let choice: usize = dialoguer::FuzzySelect::new()
-            .with_prompt("Please select an ingredient to remove!")
-            .items(&list_ingredients)
-            .interact()?;
+        return Ok(());
+    }
 
-        let deleted =
-            ingredients::remove_ingredient_from_ingredient(conn, &list_ingredients[choice])?;
-        if deleted > 0 {
-            println!("Ingredient deleted!");
-        } else {
-            println!("Ingredient not deleted!")
+    let choice: usize = dialoguer::FuzzySelect::new()
+        .with_prompt("Please select an ingredient to remove!")
+        .items(&list_ingredients)
+        .interact()?;
+
+    match ingredients::remove_ingredient_from_ingredient(conn, &list_ingredients[choice]) {
+        Ok(_) => println!("Ingredient deleted"),
+        Err(DBErrors::IngredientInPantry(number)) => {
+            println!("There are {number} pantry items that reference this ingredient!")
         }
+        Err(e) => println!("Error has occured. {}", e),
     }
 
     Ok(())
@@ -100,33 +99,44 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
-    } else {
-        let choice: usize = dialoguer::FuzzySelect::new()
-            .with_prompt("Please select an ingredient to update!")
-            .items(&list_ingredients)
-            .interact()?;
+        return Ok(());
+    }
 
-        println!("Ingredient to update: {}", list_ingredients[choice]);
-        let mut new_ingredient = ask_for_ingredient()?;
+    let choice: usize = dialoguer::FuzzySelect::new()
+        .with_prompt("Please select an ingredient to update!")
+        .items(&list_ingredients)
+        .interact()?;
 
-        new_ingredient.id = list_ingredients[choice].id;
+    println!("Ingredient to update: {}", list_ingredients[choice]);
+    let mut new_ingredient = ask_for_ingredient()?;
 
-        let confirmation = dialoguer::Confirm::new()
-            .with_prompt("Would you like to update?")
-            .wait_for_newline(true)
-            .default(false)
-            .interact()?;
+    new_ingredient.id = list_ingredients[choice].id;
 
-        if confirmation {
-            let updated = ingredients::update_ingredient(conn, &new_ingredient)?;
-            if updated > 0 {
-                println!("Ingredient updated!");
-            } else {
-                println!("Ingredient not updated!")
+    let confirmation = dialoguer::Confirm::new()
+        .with_prompt("Would you like to update?")
+        .wait_for_newline(true)
+        .default(false)
+        .interact()?;
+
+    if confirmation {
+        match ingredients::update_ingredient(conn, &new_ingredient) {
+            Ok(_) => println!("Ingredient was updated successfully!"),
+            Err(DBErrors::DuplicateIngredient(name)) => {
+                println!("Cannot update ingredient as {name} already exists!")
             }
-        } else {
-            println!("Ingredient update aborted!")
-        }
+            Err(e) => println!("Error has occured. {}", e),
+        };
+    } else {
+        println!("Ingredient update aborted!")
+    }
+
+    Ok(())
+}
+
+pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let all_ingredients = ingredients::list_all_ingredients(conn)?;
+    for ing in all_ingredients {
+        println!("{}", ing);
     }
 
     Ok(())
@@ -194,19 +204,99 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
-    let items = pantry::list_pantry_items_all(conn)?;
-    for item in items {
-        println!("{}", item);
+pub fn remove_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let all_pantry_items = pantry::list_pantry_items_all(conn)?;
+
+    if all_pantry_items.is_empty() {
+        println!("There are no pantry items to remove!");
+        return Ok(());
+    }
+
+    let choice: usize = dialoguer::FuzzySelect::new()
+        .with_prompt("Please select an item to remove:")
+        .items(&all_pantry_items)
+        .interact()?;
+
+    match pantry::remove_pantry_item(conn, all_pantry_items[choice].id.unwrap()) {
+        Ok(_) => println!("Pantry item removed"),
+        Err(e) => println!("Error has occured. {}", e),
     }
 
     Ok(())
 }
 
-pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
-    let all_ingredients = ingredients::list_all_ingredients(conn)?;
-    for ing in all_ingredients {
-        println!("{}", ing);
+pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let all_pantry_items = pantry::list_pantry_items_all(conn)?;
+
+    if all_pantry_items.is_empty() {
+        println!("There are no pantry items to remove!");
+        return Ok(());
+    }
+
+    let choice: usize = dialoguer::FuzzySelect::new()
+        .with_prompt("Please select an item to update:")
+        .items(&all_pantry_items)
+        .interact()?;
+
+    let current_item = &all_pantry_items[choice];
+
+    println!("Ingredient to update: {}", current_item);
+
+    let amount: f64 = dialoguer::Input::new()
+        .with_prompt(format!("Enter updated amount or press enter to not change",))
+        .allow_empty(true)
+        .default(current_item.amount)
+        .show_default(true)
+        .interact_text()?;
+
+    let current_date = chrono::Local::now().date_naive();
+
+    let expiry_date_string: String = dialoguer::Input::new()
+        .with_prompt("Enter new date as YYYY-MM-DD or press enter to not change")
+        .validate_with(|input: &String| -> Result<(), String> {
+            match NaiveDate::parse_from_str(input, "%Y-%m-%d") {
+                Ok(date) if date >= current_date => Ok(()),
+                Ok(_) => Err("Date cannot be in the past! Enter new date!".to_string()),
+                Err(_) => Err("Enter in the format YYYY-MM-DD".to_string()),
+            }
+        })
+        .allow_empty(true)
+        .default(current_item.expiry_date.clone())
+        .show_default(true)
+        .interact_text()?;
+
+    let expiry_date = NaiveDate::parse_from_str(&expiry_date_string, "%Y-%m-%d").unwrap();
+
+    let updated_item: PantryItem = PantryItem {
+        id: current_item.id,
+        ingredient_id: current_item.ingredient_id,
+        name: current_item.name.clone(),
+        amount: amount,
+        expiry_date: expiry_date.to_string(),
+    };
+
+    let confirmation = dialoguer::Confirm::new()
+        .with_prompt("Would you like to update?")
+        .wait_for_newline(true)
+        .default(false)
+        .interact()?;
+
+    if confirmation {
+        match pantry::update_pantry_item(conn, &updated_item) {
+            Ok(_) => println!("Item was updated successfully!"),
+            Err(e) => println!("Error has occured. {}", e),
+        };
+    } else {
+        println!("Item update aborted!")
+    }
+
+    Ok(())
+}
+
+pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
+    let items = pantry::list_pantry_items_all(conn)?;
+    for item in items {
+        println!("{}", item);
     }
 
     Ok(())

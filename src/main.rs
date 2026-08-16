@@ -120,7 +120,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     "Add Pantry Item" => {
                         menu::add_pantry_item(&conn)?;
                     }
-                    "Remove Pantry Item" => {}
+                    "Remove Pantry Item" => {
+                        menu::remove_pantry_item(&conn)?;
+                    }
+                    "Update Pantry Item" => {
+                        menu::update_pantry_item(&conn)?;
+                    }
                     "List Pantry" => {
                         menu::list_all_pantry_items(&conn)?;
                     }

@@ -1,24 +1,41 @@
+use core::num;
+use std::ptr::read;
+
 use crate::{
     db::ingredients,
+    error::DBErrors::{self, SqliteError},
     models::ingredient::{Category, Ingredient, Unit},
 };
-use rusqlite::{Connection, Error, Result};
+use rusqlite::{Connection, Result, ffi};
 
-pub fn add_ingredient(conn: &Connection, ingredient: &Ingredient) -> Result<usize> {
-    let number_row_changed = conn.execute(
+pub fn add_ingredient(conn: &Connection, ingredient: &Ingredient) -> Result<usize, DBErrors> {
+    let result = conn.execute(
         "INSERT INTO ingredients (name,category,unit) values (?1,?2,?3)",
         [
             ingredient.name.clone(),
             Ingredient::return_category_string(&ingredient),
             Ingredient::return_unit_string(&ingredient),
         ],
-    )?;
+    );
 
-    Ok(number_row_changed)
+    // Match the specific results from the query
+    // Since there is unique constraint, there is another error in the DBErrors enum, which is duplicate ingredient
+    match result {
+        Ok(size) => Ok(size),
+        Err(rusqlite::Error::SqliteFailure(err, _))
+            if err.extended_code == ffi::SQLITE_CONSTRAINT_UNIQUE =>
+        {
+            return Err(DBErrors::DuplicateIngredient(ingredient.name.clone()));
+        }
+        Err(e) => Err(DBErrors::SqliteError(e)),
+    }
 }
 
-pub fn update_ingredient(conn: &Connection, updated_ingredient: &Ingredient) -> Result<usize> {
-    conn.execute(
+pub fn update_ingredient(
+    conn: &Connection,
+    updated_ingredient: &Ingredient,
+) -> Result<usize, DBErrors> {
+    let result = conn.execute(
         "UPDATE ingredients
             SET name = ?1,
             category = ?2,
@@ -31,7 +48,19 @@ pub fn update_ingredient(conn: &Connection, updated_ingredient: &Ingredient) -> 
             &Ingredient::return_unit_string(&updated_ingredient),
             &updated_ingredient.id.unwrap().to_string(),
         ],
-    )
+    );
+
+    match result {
+        Ok(rows) => Ok(rows),
+        Err(rusqlite::Error::SqliteFailure(err, _))
+            if err.extended_code == ffi::SQLITE_CONSTRAINT_UNIQUE =>
+        {
+            return Err(DBErrors::DuplicateIngredient(
+                updated_ingredient.name.clone(),
+            ));
+        }
+        Err(e) => Err(DBErrors::SqliteError(e)),
+    }
 }
 
 pub fn list_all_ingredients(conn: &Connection) -> Result<Vec<Ingredient>> {
@@ -64,7 +93,17 @@ pub fn get_ingredient_id(conn: &Connection, ingredient_name: String) -> Result<i
 pub fn remove_ingredient_from_ingredient(
     conn: &Connection,
     ingredient: &Ingredient,
-) -> Result<usize> {
+) -> Result<usize, DBErrors> {
+    let number_of_pantry_items = conn.query_row(
+        "SELECT COUNT(*) FROM pantry WHERE ingredient_id = ?1",
+        [ingredient.id],
+        |row| row.get(0),
+    )?;
+
+    if number_of_pantry_items > 0 {
+        return Err(DBErrors::IngredientInPantry(number_of_pantry_items));
+    }
+
     // Should always remove as user will select one of the available ingredients
     let number_removed = conn.execute(
         "DELETE FROM ingredients WHERE name = ?1",
