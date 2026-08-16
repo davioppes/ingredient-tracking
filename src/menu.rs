@@ -4,6 +4,7 @@ use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
 use chrono::{self, Datelike, NaiveDate};
 use dialoguer;
+use dialoguer::theme::ColorfulTheme;
 use rusqlite::Connection;
 use rusqlite::Error as SQLError;
 use rusqlite::ffi;
@@ -35,7 +36,7 @@ pub const PANTRY_CHOICES: [&str; 5] = [
 ];
 
 pub fn main_menu() -> Result<usize, Box<dyn Error>> {
-    let select = dialoguer::Select::new()
+    let select = dialoguer::Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What would you like to do?")
         .items(&STARTING_CHOICES)
         .interact()?;
@@ -45,7 +46,7 @@ pub fn main_menu() -> Result<usize, Box<dyn Error>> {
 
 // INGREDIENT MENU
 pub fn ingredients_menu() -> Result<usize, Box<dyn Error>> {
-    let ingredient_select = dialoguer::Select::new()
+    let ingredient_select = dialoguer::Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What would you like to do?")
         .items(&INGREDIENT_CHOICES)
         .interact()?;
@@ -78,7 +79,7 @@ pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let choice: usize = dialoguer::FuzzySelect::new()
+    let choice: usize = dialoguer::FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please select an ingredient to remove!")
         .items(&list_ingredients)
         .interact()?;
@@ -102,7 +103,7 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let choice: usize = dialoguer::FuzzySelect::new()
+    let choice: usize = dialoguer::FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please select an ingredient to update!")
         .items(&list_ingredients)
         .interact()?;
@@ -112,7 +113,7 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     new_ingredient.id = list_ingredients[choice].id;
 
-    let confirmation = dialoguer::Confirm::new()
+    let confirmation = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Would you like to update?")
         .wait_for_newline(true)
         .default(false)
@@ -144,7 +145,7 @@ pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
 // PANTRY MENU
 pub fn pantry_menu() -> Result<usize, Box<dyn Error>> {
-    let pantry_select = dialoguer::Select::new()
+    let pantry_select = dialoguer::Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What would you like to do?")
         .items(&PANTRY_CHOICES)
         .interact()?;
@@ -157,7 +158,7 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
     if list_all_ingredients.is_empty() {
         println!("No ingredients exist!");
     } else {
-        let choice: usize = dialoguer::FuzzySelect::new()
+        let choice: usize = dialoguer::FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Select an ingredient to add to the pantry!")
             .items(&list_all_ingredients)
             .interact()?;
@@ -165,7 +166,7 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         // name, ingredient_id
         let ingredient_choice: &Ingredient = &list_all_ingredients[choice];
 
-        let amount: f64 = dialoguer::Input::new()
+        let amount: f64 = dialoguer::Input::with_theme(&ColorfulTheme::default())
             .with_prompt(format!(
                 "Enter amount of {} in {}",
                 ingredient_choice.name,
@@ -175,7 +176,7 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
         let current_date = chrono::Local::now().date_naive();
 
-        let expiry_date_string: String = dialoguer::Input::new()
+        let expiry_date_string: String = dialoguer::Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Enter day of expiration as YYYY-MM-DD:")
             .validate_with(|input: &String| -> Result<(), String> {
                 match NaiveDate::parse_from_str(input, "%Y-%m-%d") {
@@ -212,7 +213,7 @@ pub fn remove_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let choice: usize = dialoguer::FuzzySelect::new()
+    let choice: usize = dialoguer::FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please select an item to remove:")
         .items(&all_pantry_items)
         .interact()?;
@@ -233,7 +234,7 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         return Ok(());
     }
 
-    let choice: usize = dialoguer::FuzzySelect::new()
+    let choice: usize = dialoguer::FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt("Please select an item to update:")
         .items(&all_pantry_items)
         .interact()?;
@@ -242,7 +243,7 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     println!("Ingredient to update: {}", current_item);
 
-    let amount: f64 = dialoguer::Input::new()
+    let amount: f64 = dialoguer::Input::with_theme(&ColorfulTheme::default())
         .with_prompt(format!("Enter updated amount or press enter to not change",))
         .allow_empty(true)
         .default(current_item.amount)
@@ -251,7 +252,7 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     let current_date = chrono::Local::now().date_naive();
 
-    let expiry_date_string: String = dialoguer::Input::new()
+    let expiry_date_string: String = dialoguer::Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Enter new date as YYYY-MM-DD or press enter to not change")
         .validate_with(|input: &String| -> Result<(), String> {
             match NaiveDate::parse_from_str(input, "%Y-%m-%d") {
@@ -275,7 +276,7 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         expiry_date: expiry_date.to_string(),
     };
 
-    let confirmation = dialoguer::Confirm::new()
+    let confirmation = dialoguer::Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Would you like to update?")
         .wait_for_newline(true)
         .default(false)
@@ -303,7 +304,7 @@ pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
 }
 // Helper function to create a new ingredient
 fn ask_for_ingredient() -> Result<Ingredient, Box<dyn Error>> {
-    let name = dialoguer::Input::new()
+    let name = dialoguer::Input::with_theme(&ColorfulTheme::default())
         .with_prompt("Name of ingredient?")
         .validate_with(|input: &String| -> Result<(), String> {
             if input.is_empty() {
@@ -314,11 +315,11 @@ fn ask_for_ingredient() -> Result<Ingredient, Box<dyn Error>> {
         })
         .interact_text()?;
 
-    let category = dialoguer::Select::new()
+    let category = dialoguer::Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What is the category?")
         .items(&CATEGORIES)
         .interact()?;
-    let unit = dialoguer::Select::new()
+    let unit = dialoguer::Select::with_theme(&ColorfulTheme::default())
         .with_prompt("What is the unit?")
         .items(&UNITS)
         .interact()?;

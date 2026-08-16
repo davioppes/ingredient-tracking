@@ -93,6 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             "ingredient" => {
                 state = "ingredient";
+                
                 let choice = menu::ingredients_menu()?;
 
                 match menu::INGREDIENT_CHOICES[choice] {
