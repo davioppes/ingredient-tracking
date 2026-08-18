@@ -4,13 +4,13 @@ use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
 use chrono::{self, NaiveDate};
 use dialoguer;
-use dialoguer::theme::ColorfulTheme;
+use dialoguer::theme::{ColorfulTheme, SimpleTheme};
 use rusqlite::Connection;
 use std::error::Error;
 use std::io::Write;
 
 // STARTING MENU CHOICES
-pub const STARTING_CHOICES: [&str; 4] = ["Ingredients", "Pantry", "Recipes", "Exit"];
+pub const STARTING_CHOICES: [&str; 3] = ["Ingredients", "Pantry", "Exit"];
 
 // INGREDIENT MENU CHOICE SELECTIONS
 pub const INGREDIENT_CHOICES: [&str; 5] = [
@@ -49,6 +49,7 @@ pub fn ingredients_menu() -> Result<usize, Box<dyn Error>> {
         .with_prompt("What would you like to do?")
         .items(&INGREDIENT_CHOICES)
         .interact()?;
+
     Ok(ingredient_select)
 }
 
@@ -60,12 +61,14 @@ pub fn add_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
             println!("Ingredient was added.");
         }
         Err(DBErrors::DuplicateIngredient(name)) => {
-            println!("{name} already exists! Try another name.");
+            println!("{name} already exists!");
         }
         Err(error) => {
             println!("Error has occured. {}", error);
         }
     }
+
+    press_to_confirm()?;
 
     Ok(())
 }
@@ -90,6 +93,8 @@ pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
         }
         Err(e) => println!("Error has occured. {}", e),
     }
+
+    press_to_confirm()?;
 
     Ok(())
 }
@@ -130,6 +135,8 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
         println!("Ingredient update aborted!")
     }
 
+    press_to_confirm()?;
+
     Ok(())
 }
 
@@ -138,6 +145,8 @@ pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
     for ing in all_ingredients {
         println!("{}", ing);
     }
+
+    press_to_confirm()?;
 
     Ok(())
 }
@@ -148,6 +157,7 @@ pub fn pantry_menu() -> Result<usize, Box<dyn Error>> {
         .with_prompt("What would you like to do?")
         .items(&PANTRY_CHOICES)
         .interact()?;
+
     Ok(pantry_select)
 }
 
@@ -201,6 +211,8 @@ pub fn add_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         // let new_pantry_item = PantryItem { }
     }
 
+    press_to_confirm()?;
+
     Ok(())
 }
 
@@ -221,6 +233,8 @@ pub fn remove_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         Ok(_) => println!("Pantry item removed"),
         Err(e) => println!("Error has occured. {}", e),
     }
+
+    press_to_confirm()?;
 
     Ok(())
 }
@@ -290,6 +304,8 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
         println!("Item update aborted!")
     }
 
+    press_to_confirm()?;
+
     Ok(())
 }
 
@@ -298,6 +314,8 @@ pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
     for item in items {
         println!("{}", item);
     }
+
+    press_to_confirm()?;
 
     Ok(())
 }
@@ -334,7 +352,11 @@ fn ask_for_ingredient() -> Result<Ingredient, Box<dyn Error>> {
     Ok(new_ingredient)
 }
 
-pub fn clear_screen() {
-    print!("\x1B[2J\x1B[1;1H");
-    std::io::stdout().flush().unwrap();
+pub fn press_to_confirm() -> Result<(), Box<dyn Error>> {
+    let _: String = dialoguer::Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Press enter to continue.")
+        .allow_empty(true)
+        .interact_text()?;
+
+    Ok(())
 }
