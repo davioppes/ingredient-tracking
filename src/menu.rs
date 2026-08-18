@@ -4,10 +4,9 @@ use crate::models::pantry_item::PantryItem;
 use crate::{db::ingredients, models::ingredient::Ingredient};
 use chrono::{self, NaiveDate};
 use dialoguer;
-use dialoguer::theme::{ColorfulTheme, SimpleTheme};
+use dialoguer::theme::{ColorfulTheme};
 use rusqlite::Connection;
 use std::error::Error;
-use std::io::Write;
 
 // STARTING MENU CHOICES
 pub const STARTING_CHOICES: [&str; 3] = ["Ingredients", "Pantry", "Exit"];
@@ -78,6 +77,7 @@ pub fn remove_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
+        press_to_confirm()?;
         return Ok(());
     }
 
@@ -104,6 +104,7 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if list_ingredients.is_empty() {
         println!("There are no ingredients!");
+        press_to_confirm()?;
         return Ok(());
     }
 
@@ -112,8 +113,39 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
         .items(&list_ingredients)
         .interact()?;
 
-    println!("Ingredient to update: {}", list_ingredients[choice]);
-    let mut new_ingredient = ask_for_ingredient()?;
+    let current_ingredient: &Ingredient = &list_ingredients[choice];
+
+    println!("Ingredient to update: {}", current_ingredient);
+
+    let name = dialoguer::Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("Enter updated name or press enter to skip.")
+        .validate_with(|input: &String| -> Result<(), String> {
+            if input.is_empty() {
+                Err("Name cannot be empty".into())
+            } else {
+                Ok(())
+            }
+        })
+        .default(current_ingredient.name.clone())
+        .show_default(true)
+        .interact_text()?;
+
+    let category = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("What is the category?")
+        .items(&CATEGORIES)
+        .interact()?;
+    let unit = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("What is the unit?")
+        .items(&UNITS)
+        .interact()?;
+
+    // Create new ingredient to be passed into the add_ingredient function
+    let mut new_ingredient = Ingredient {
+        id: None,
+        name: name,
+        category: Ingredient::convert_to_category(CATEGORIES[category].to_string()),
+        unit: Ingredient::convert_to_unit(UNITS[unit].to_string()),
+    };
 
     new_ingredient.id = list_ingredients[choice].id;
 
@@ -142,8 +174,13 @@ pub fn update_ingredient(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
 pub fn list_all_ingredients(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let all_ingredients = ingredients::list_all_ingredients(conn)?;
-    for ing in all_ingredients {
-        println!("{}", ing);
+
+    if all_ingredients.is_empty() {
+        println!("No ingredients!")
+    } else {
+        for ing in all_ingredients {
+            println!("{}", ing);
+        }
     }
 
     press_to_confirm()?;
@@ -221,6 +258,7 @@ pub fn remove_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if all_pantry_items.is_empty() {
         println!("There are no pantry items to remove!");
+        press_to_confirm()?;
         return Ok(());
     }
 
@@ -244,6 +282,7 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     if all_pantry_items.is_empty() {
         println!("There are no pantry items to remove!");
+        press_to_confirm()?;
         return Ok(());
     }
 
@@ -311,8 +350,13 @@ pub fn update_pantry_item(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
 pub fn list_all_pantry_items(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let items = pantry::list_pantry_items_all(conn)?;
-    for item in items {
-        println!("{}", item);
+
+    if items.is_empty() {
+        println!("No pantry items!")
+    } else {
+        for item in items {
+            println!("{}", item);
+        }
     }
 
     press_to_confirm()?;
